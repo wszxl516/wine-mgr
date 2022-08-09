@@ -9,7 +9,6 @@ pub use env::Env;
 use clap::Parser;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
-use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 use std::{fs, path};
@@ -21,10 +20,10 @@ pub struct Args {
     ///program name, alias or path(unix path support only).
     #[clap(short, long, value_parser, default_value = "winecfg")]
     pub program: String,
-    ///enable debug info print on console.
+    ///enable verbose info print on console if not run process background.
     ///Use the log=debug environment variable to view debug logs.
     #[clap(short, long, value_parser, default_value_t = false)]
-    pub debug: bool,
+    pub verbose: bool,
     ///toml config file path. Built-in is used by default.
     #[clap(short, long, value_parser, default_value = "config.json")]
     pub config: String,
@@ -60,7 +59,7 @@ fn from_string(config: &str, section: &str) -> Result<HashMap<String, String>, (
 }
 
 
-pub fn parse_config() -> (String, String, Config, Env, Alias, File, bool, bool, bool, bool, Option<std::string::String>) {
+pub fn parse_config() -> (String, String, Config, Env, Alias, bool, bool, bool, bool, Option<String>) {
     log::init_logger();
     let args = Args::parse();
     let mut env = Env::default();
@@ -72,7 +71,7 @@ pub fn parse_config() -> (String, String, Config, Env, Alias, File, bool, bool, 
             let mut config_str = String::new();
             let mut f = fs::File::open(&args.config).unwrap();
             f.read_to_string(&mut config_str).unwrap();
-            match Env::from_string(config_str.as_str()) {
+            match Env::from_string(config_str.as_str(), true) {
                 Ok(e) => env = e,
                 Err(_) => error!("parse {} failed, use default env.", &args.config),
             }
@@ -88,7 +87,6 @@ pub fn parse_config() -> (String, String, Config, Env, Alias, File, bool, bool, 
         false => warn!("can not found {}, use default config.", &args.config),
     };
 
-    let log = File::create(conf.get("log").unwrap_or(&"out.log".to_string())).unwrap();
     let wine_bin = match env.get("WINE") {
         None => "wine".to_string(),
         Some(w) => w.clone(),
@@ -111,5 +109,5 @@ pub fn parse_config() -> (String, String, Config, Env, Alias, File, bool, bool, 
         },
         false => {}
     };
-    (wine_bin, String::from(program), conf, env, alias, log, args.debug, args.back, args.alias, args.list, args.kill)
+    (wine_bin, String::from(program), conf, env, alias, args.verbose, args.back, args.alias, args.list, args.kill)
 }

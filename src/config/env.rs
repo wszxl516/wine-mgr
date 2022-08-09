@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 use crate::config::from_string;
 use std::collections::HashMap;
+use std::ffi::{CStr, CString};
 use std::fmt::{Display, Formatter};
 
 const DEFAULT_ENV: [(&str, &str); 14] = [
@@ -34,14 +35,23 @@ impl Env {
     pub fn get_map(&self) -> &HashMap<String, String> {
         &self.0
     }
-    pub fn from_string(c: &str) -> Result<Env, ()> {
+    pub fn from_string(c: &str, with_sys_env:bool) -> Result<Env, ()> {
         match from_string(c, ENV_KEY) {
-            Ok(e) => Ok(Env { 0: e }),
+            Ok(mut e) => {
+                with_sys_env.then(||e.extend(std::env::vars().collect::<HashMap<String, String>>()));
+                Ok(Env { 0: e })
+            },
             _ => Err(()),
         }
     }
     pub fn get(&self, key: &str) -> Option<&String> {
         self.0.get(key)
+    }
+    pub fn cstr(&self)-> Vec<Box<CStr>>{
+        self.0
+        .iter()
+        .map(|(k, v)|CString::new(format!("{}={}", k, v)).unwrap().into_boxed_c_str())
+        .collect::<Vec<Box<CStr>>>()
     }
 }
 

@@ -1,15 +1,16 @@
+extern crate core;
+
 mod config;
 mod executor;
 
-use crate::executor::executor_back;
 use config::parse_config;
 use executor::{executor, WineProc};
 use log::info;
+use nix::unistd;
 use std::process;
-use std::sync::{Arc, Mutex};
 
 fn main() {
-    let (wine_bin, program, conf, env, alias_data, log, debug, back, alias, list, kill) =
+    let (wine_bin, program, conf, env, alias_data, mut verbose, back, alias, list, kill) =
         parse_config();
     alias.then(|| {
         alias_data.print_table();
@@ -30,7 +31,7 @@ fn main() {
                 WineProc::new().kill_by_name(name.as_str());
                 process::exit(0)
             }
-        }
+        },
     }
     info!("Wine path: {}", wine_bin);
     info!(
@@ -38,28 +39,23 @@ fn main() {
         conf.get("name").unwrap_or(&"noname".to_string())
     );
     info!("Program name: {}", program);
-    info!(
-        "old logs({}) will be overwritten",
-        conf.get("log").unwrap_or(&"out.log".to_string())
-    );
+    let log_file = conf
+        .get("log")
+        .unwrap_or(&"out.log".to_string())
+        .to_string();
+    info!("old logs({}) will be overwritten", log_file.clone());
     match back {
-        true => executor_back(
-            wine_bin.as_str(),
-            vec![program.as_str()],
-            env,
-            Arc::new(Mutex::new(log)),
-            debug,
-        ),
-        false => {
-            executor(
-                wine_bin.as_str(),
-                vec![program.as_str()],
-                env,
-                Arc::new(Mutex::new(log)),
-                debug,
-            )
-            .unwrap();
-            ()
+        true => {
+            verbose = false;
+            unistd::daemon(true, false).unwrap()
         }
+        false => (),
     }
+    executor(
+        wine_bin.clone(),
+        vec![wine_bin, program],
+        env,
+        log_file,
+        verbose,
+    )
 }
