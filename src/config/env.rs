@@ -35,23 +35,28 @@ impl Env {
     pub fn get_map(&self) -> &HashMap<String, String> {
         &self.0
     }
-    pub fn from_string(c: &str, with_sys_env:bool) -> Result<Env, ()> {
+    pub fn from_string(c: &str, with_sys_env: bool) -> Result<Env, ()> {
         match from_string(c, ENV_KEY) {
             Ok(mut e) => {
-                with_sys_env.then(||e.extend(std::env::vars().collect::<HashMap<String, String>>()));
+                with_sys_env
+                    .then(|| e.extend(std::env::vars().collect::<HashMap<String, String>>()));
                 Ok(Env { 0: e })
-            },
+            }
             _ => Err(()),
         }
     }
     pub fn get(&self, key: &str) -> Option<&String> {
         self.0.get(key)
     }
-    pub fn cstr(&self)-> Vec<Box<CStr>>{
+    pub fn cstr(&self) -> Vec<Box<CStr>> {
         self.0
-        .iter()
-        .map(|(k, v)|CString::new(format!("{}={}", k, v)).unwrap().into_boxed_c_str())
-        .collect::<Vec<Box<CStr>>>()
+            .iter()
+            .map(|(k, v)| {
+                CString::new(format!("{}={}", k, v))
+                    .unwrap()
+                    .into_boxed_c_str()
+            })
+            .collect::<Vec<Box<CStr>>>()
     }
 }
 

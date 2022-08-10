@@ -1,12 +1,12 @@
 use crate::config::from_string;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
-const DEFAULT_CONF: [(&str, &str); 2] = [("name", "windows7"), ("log", "wine-mgr.log")];
+const DEFAULT_CONF: [(&str, &str); 2] = [("name", "bottle"), ("log", "wine-mgr.log")];
 
 pub struct Config(HashMap<String, String>);
 impl Config {
     pub fn from_string(c: &str) -> Result<Self, ()> {
-        match from_string(c, "config") {
+        match from_string(c, "bottle") {
             Ok(c) => Ok(Self { 0: c }),
             Err(_) => Err(()),
         }

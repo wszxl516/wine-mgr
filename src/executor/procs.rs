@@ -1,10 +1,10 @@
-use procfs::process::Process;
-use procfs::{process};
 use cli_table::{print_stdout, Cell, Style, Table};
 use nix;
 use nix::sys::signal;
-use nix::unistd::Pid;
 use nix::sys::signal::Signal;
+use nix::unistd::Pid;
+use procfs::process;
+use procfs::process::Process;
 
 pub struct WineProc(Vec<Process>);
 impl WineProc {
@@ -29,24 +29,24 @@ impl WineProc {
                 .collect::<Vec<Process>>(),
         }
     }
-    pub fn kill_all(&self){
+    pub fn kill_all(&self) {
         if self.0.is_empty() {
             println!("There are not Wine process found!");
             return;
         }
-        for p in &self.0{
+        for p in &self.0 {
             signal::kill(Pid::from_raw(p.pid), Some(Signal::SIGKILL)).unwrap();
         }
     }
-    pub fn kill_by_name(&self, name: &str){
+    pub fn kill_by_name(&self, name: &str) {
         if self.0.is_empty() {
             println!("There are not Wine process found!");
             return;
         }
-        for p in &self.0{
+        for p in &self.0 {
             match p.stat() {
                 Ok(s) => {
-                    if s.comm == name{
+                    if s.comm == name {
                         signal::kill(Pid::from_raw(p.pid), Some(Signal::SIGKILL)).unwrap();
                         return;
                     }
@@ -57,24 +57,26 @@ impl WineProc {
         println!("Wine process: \"{}\" not found!", name);
     }
 
-    pub fn print_table(&self){
+    pub fn print_table(&self) {
         let mut table = vec![];
-        for p in &self.0{
+        for p in &self.0 {
             let stat = p.stat().unwrap();
-            table.push(
-                vec![stat.comm.cell(),
-                     stat.pid.cell(),
-                     stat.ppid.cell(),
-                     p.uid().unwrap().cell(),
-                     stat.state.cell()])
+            table.push(vec![
+                stat.comm.cell(),
+                stat.pid.cell(),
+                stat.ppid.cell(),
+                p.uid().unwrap().cell(),
+                stat.state.cell(),
+            ])
         }
         let table = table
             .table()
-            .title(vec!["comm".cell().bold(true),
-                        "pid".cell().bold(true),
-                        "ppid".cell().bold(true),
-                        "uid".cell().bold(true),
-                        "status".cell().bold(true)
+            .title(vec![
+                "comm".cell().bold(true),
+                "pid".cell().bold(true),
+                "ppid".cell().bold(true),
+                "uid".cell().bold(true),
+                "status".cell().bold(true),
             ])
             .bold(true);
         print_stdout(table).unwrap();

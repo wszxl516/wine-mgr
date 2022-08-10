@@ -3,24 +3,23 @@ extern crate core;
 mod config;
 mod executor;
 
-use config::parse_config;
+use config::ArgsConfig;
 use executor::{executor, WineProc};
 use log::info;
 use nix::unistd;
 use std::process;
 
 fn main() {
-    let (wine_bin, program, conf, env, alias_data, mut verbose, back, alias, list, kill) =
-        parse_config();
-    alias.then(|| {
-        alias_data.print_table();
+    let mut args = ArgsConfig::new();
+    args.show_alias.then(|| {
+        args.alias.print_table();
         process::exit(0)
     });
-    list.then(|| {
+    args.list_process.then(|| {
         WineProc::new().print_table();
         process::exit(0)
     });
-    match kill {
+    match args.kill {
         None => {}
         Some(name) => match name.as_str() {
             "all" => {
@@ -33,29 +32,26 @@ fn main() {
             }
         },
     }
-    info!("Wine path: {}", wine_bin);
     info!(
         "Wine bottle name: {}",
-        conf.get("name").unwrap_or(&"noname".to_string())
+        args.conf.get("name").unwrap_or(&"noname".to_string())
     );
-    info!("Program name: {}", program);
-    let log_file = conf
-        .get("log")
-        .unwrap_or(&"out.log".to_string())
-        .to_string();
-    info!("old logs({}) will be overwritten", log_file.clone());
-    match back {
+    info!("Wine prefix: {}", args.env.get("WINEPREFIX").unwrap());
+    info!("Wine path: {}", args.wine_bin);
+    info!("Program name: {}", args.program);
+    info!("old log \"{}\" will be overwritten!", args.log_file);
+    match args.background {
         true => {
-            verbose = false;
+            args.verbose = false;
             unistd::daemon(true, false).unwrap()
         }
         false => (),
     }
     executor(
-        wine_bin.clone(),
-        vec![wine_bin, program],
-        env,
-        log_file,
-        verbose,
+        args.wine_bin.clone(),
+        vec![args.wine_bin, args.program],
+        args.env,
+        args.log_file,
+        args.verbose,
     )
 }
