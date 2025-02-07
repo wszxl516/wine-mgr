@@ -38,7 +38,14 @@ fn main() {
     );
     info!("Wine prefix: {}", args.env.get("WINEPREFIX").unwrap());
     info!("Wine path: {}", args.wine_bin);
-    info!("Program name: {}", args.program);
+    let program = std::path::Path::new(&args.program);
+    let wine_args = if !program.exists(){
+        args.program.split(" ").map(|x|x.to_string()).collect::<Vec<String>>()
+    }
+    else {
+        vec![args.program]
+    };
+    info!("Program: {:?}", &wine_args);
     info!("old log \"{}\" will be overwritten!", args.log_file);
     match args.background {
         true => {
@@ -47,9 +54,11 @@ fn main() {
         }
         false => (),
     }
+    let mut executor_args = vec![args.wine_bin.clone()];
+    executor_args.extend(wine_args);
     executor(
         args.wine_bin.clone(),
-        vec![args.wine_bin, args.program],
+        executor_args,
         args.env,
         args.log_file,
         args.verbose,
